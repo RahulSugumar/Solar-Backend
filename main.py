@@ -12,6 +12,7 @@ app = FastAPI(title="Solar Platform API", version="1.0.0")
 origins = [
     "http://localhost:5173", # Vite Default
     "http://localhost:3000",
+    "https://solarfrontend.netlify.app",
 ]
 
 app.add_middleware(
