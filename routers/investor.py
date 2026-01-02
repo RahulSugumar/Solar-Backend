@@ -5,6 +5,15 @@ from typing import List, Optional
 
 router = APIRouter(prefix="/invest", tags=["Investor"])
 
+# 18. GET /invest/wallet
+@router.get("/wallet")
+def get_wallet_balance(user_id: str = Header(..., alias="X-User-ID")):
+    # Fetch user balance
+    response = supabase.table("users").select("balance").eq("id", user_id).execute()
+    if not response.data:
+        raise HTTPException(status_code=404, detail="User wallet not found")
+    return {"balance": response.data[0]['balance']}
+
 # 12. GET /invest/available-lands?location=
 @router.get("/available-lands", response_model=List[LandResponse])
 def search_lands(location: Optional[str] = Query(None)):

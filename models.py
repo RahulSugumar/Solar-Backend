@@ -12,6 +12,7 @@ class UserBase(BaseModel):
     full_name: str
     phone: Optional[str] = None
     role: str = "investor" # 'land_owner', 'investor', 'admin'
+    balance: float = 0.0
 
 class UserCreate(UserBase):
     password: str # In real app, hash this. For MVP demo, plain or simple hash.
