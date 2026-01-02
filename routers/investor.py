@@ -77,17 +77,24 @@ def request_land(investment: InvestmentCreate):
     if not land.data or land.data[0]['status'] != 'available':
         raise HTTPException(status_code=400, detail="Land not available")
 
-    # 2. Reserve (Update Land)
+    # 2. Check User Balance (Optional but recommended)
+    # user = supabase.table("users").select("Balance").eq("id", investment.investor_id).execute()
+    # if not user.data or user.data[0]['Balance'] < investment.amount:
+    #     raise HTTPException(status_code=400, detail="Insufficient Wallet Balance")
+
+    # 3. Reserve (Update Land Status)
+    # This removes it from the 'available' marketplace view
     supabase.table("lands").update({"status": "reserved"}).eq("id", investment.land_id).execute()
 
-    # 3. Create Investment Record
+    # 4. Create Investment Record
     data = {
         "land_id": investment.land_id,
         "investor_id": investment.investor_id,
         "amount": investment.amount,
-        "status": "pending_payment" # waiting for admin manual confirm
+        "status": "pending_approval" # Admin approval needed to go Active
     }
     response = supabase.table("investments").insert(data).execute()
+    
     return response.data[0]
 
 # 15. GET /invest/my-requests
@@ -100,8 +107,8 @@ def get_my_requests(user_id: str = Header(..., alias="X-User-ID")):
 # 16. GET /invest/my-investments
 @router.get("/my-investments", response_model=List[InvestmentResponse])
 def get_my_investments(user_id: str = Header(..., alias="X-User-ID")):
-    # Active/Completed investments
-    response = supabase.table("investments").select("*").eq("investor_id", user_id).eq("status", "completed").execute()
+    # Return ALL investments (pending, active, etc.) so user can see status
+    response = supabase.table("investments").select("*").eq("investor_id", user_id).execute()
     return response.data
 
 # 17. GET /invest/notifications
