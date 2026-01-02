@@ -66,3 +66,7 @@ class PlatformStats(BaseModel):
     total_land_owners: int
     active_sites: int
     total_energy_generated: float # Mock value or sum
+
+# --- Wallet Models ---
+class WalletTransaction(BaseModel):
+    amount: float

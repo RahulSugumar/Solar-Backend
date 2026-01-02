@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Header, Query
-from models import LandResponse, InvestmentCreate, InvestmentResponse, LandBase
+from models import LandResponse, InvestmentCreate, InvestmentResponse, LandBase, WalletTransaction
 from database import supabase
 from typing import List, Optional
 
@@ -13,6 +13,41 @@ def get_wallet_balance(user_id: str = Header(..., alias="X-User-ID")):
     if not response.data:
         raise HTTPException(status_code=404, detail="User wallet not found")
     return {"balance": response.data[0]['balance']}
+
+# 19. POST /invest/wallet/add
+@router.post("/wallet/add")
+def add_funds(transaction: WalletTransaction, user_id: str = Header(..., alias="X-User-ID")):
+    # 1. Get current balance
+    user_res = supabase.table("users").select("Balance").eq("id", user_id).execute()
+    if not user_res.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    current_balance = user_res.data[0]['Balance'] or 0.0
+    new_balance = int(current_balance + transaction.amount)
+    
+    # 2. Update balance
+    supabase.table("users").update({"Balance": new_balance}).eq("id", user_id).execute()
+    return {"message": "Funds added successfully", "balance": new_balance}
+
+# 20. POST /invest/wallet/withdraw
+@router.post("/wallet/withdraw")
+def withdraw_funds(transaction: WalletTransaction, user_id: str = Header(..., alias="X-User-ID")):
+    # 1. Get current balance
+    user_res = supabase.table("users").select("Balance").eq("id", user_id).execute()
+    if not user_res.data:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    current_balance = user_res.data[0]['Balance'] or 0.0
+    
+    if current_balance < transaction.amount:
+         raise HTTPException(status_code=400, detail="Insufficient funds")
+
+    new_balance = int(current_balance - transaction.amount)
+    
+    # 2. Update balance
+    supabase.table("users").update({"Balance": new_balance}).eq("id", user_id).execute()
+    return {"message": "Funds withdrawn successfully", "balance": new_balance}
+
 
 # 12. GET /invest/available-lands?location=
 @router.get("/available-lands", response_model=List[LandResponse])
