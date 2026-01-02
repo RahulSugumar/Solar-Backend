@@ -119,3 +119,37 @@ def get_notifications(user_id: str = Header(..., alias="X-User-ID")):
         {"id": 1, "message": "Welcome to the platform!"},
         {"id": 2, "message": "Check available lands now."}
     ]
+# 21. POST /invest/pay-now/:investment_id
+@router.post("/pay-now/{investment_id}")
+def pay_now(investment_id: str, user_id: str = Header(..., alias="X-User-ID")):
+    # 1. Get Investment
+    inv_res = supabase.table("investments").select("*").eq("id", investment_id).eq("investor_id", user_id).execute()
+    if not inv_res.data:
+        raise HTTPException(status_code=404, detail="Investment not found")
+    
+    investment = inv_res.data[0]
+    # Allow payment only if pending_approval (for demo speed) or payment_pending
+    # Real flow: pending_approval -> Admin Approves -> payment_pending -> Pay Now
+    # For now, we'll assume the status is 'payment_pending'
+    if investment['status'] != 'payment_pending':
+        raise HTTPException(status_code=400, detail=f"Cannot pay for investment with status: {investment['status']}")
+
+    # 2. Get User Balance
+    user_res = supabase.table("users").select("Balance").eq("id", user_id).execute()
+    current_balance = user_res.data[0]['Balance'] or 0.0
+    
+    if current_balance < investment['amount']:
+        raise HTTPException(status_code=400, detail="Insufficient Wallet Balance")
+
+    # 3. Process Payment (Deduct Balance)
+    new_balance = int(current_balance - investment['amount'])
+    supabase.table("users").update({"Balance": new_balance}).eq("id", user_id).execute()
+    
+    # 4. Update Investment Status -> 'active'
+    # Using 'active' to signify it generates returns
+    supabase.table("investments").update({"status": "active"}).eq("id", investment_id).execute()
+    
+    # 5. Update Land Status -> 'active'
+    supabase.table("lands").update({"status": "active"}).eq("id", investment['land_id']).execute()
+    
+    return {"message": "Payment Successful! Investment Active.", "balance": new_balance}

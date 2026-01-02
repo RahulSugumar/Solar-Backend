@@ -25,7 +25,7 @@ def register(user: UserCreate):
         "full_name": user.full_name,
         "phone": user.phone,
         "role": user.role,
-        # "password": user.password # Uncomment if you add password column to Supabase
+        "password": user.password 
     }).execute()
 
     if not response.data:
@@ -42,7 +42,11 @@ def login(creds: UserLogin):
         raise HTTPException(status_code=404, detail="User not found")
     
     user = response.data[0]
-    # if user.get('password') != creds.password: raise ...
+    
+    # Password Verification
+    # In production, use bcrypt.verify(creds.password, user['password'])
+    if user.get('password') != creds.password:
+         raise HTTPException(status_code=401, detail="Invalid Password")
     
     return user
 

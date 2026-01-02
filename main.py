@@ -30,5 +30,8 @@ app.include_router(auth.router)
 app.include_router(public.router)
 app.include_router(land_owner.router)
 app.include_router(investor.router)
+app.include_router(admin.router) # New Admin Router
+app.include_router(land_owner.router)
+app.include_router(investor.router)
 app.include_router(payment.router)
 app.include_router(admin.router)
